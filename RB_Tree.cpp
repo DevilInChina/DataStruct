@@ -6,8 +6,9 @@
 #include <cstdio>
 #include <set>
 #include <queue>
-// commit test
-template <class T,class Compare = std::less<T> >
+
+
+template <class T,class Compare = std::less<T>>
 class RB_Tree {
 protected:
 #define BLACK false
@@ -15,14 +16,19 @@ protected:
 
     struct Node {
         Node() {
+            // printf("create called\n");
+            //  fflush(stdout);
             Color = RED;
             father = left = right = nullptr;
         }
 
         explicit Node(const T &Copy) : element(Copy) {
+            //    printf("create called\n");
             Color = RED;
             father = left = right = nullptr;
         }
+
+        ~Node() {}
 
         T element;
         bool Color;
@@ -38,6 +44,7 @@ public:
         root = soldier;
         soldier->left = soldier->right = soldier;
         soldier->father = nullptr;
+        SIZE = 0;
     }
 
     class iterator {
@@ -103,7 +110,7 @@ public:
         }
 
     private:
-        friend RB_Tree<T>;
+        friend RB_Tree<T, Compare>;
         Node *PtrNode;
     };
 
@@ -124,11 +131,14 @@ public:
 
     iterator begin() {
         Node *ptr = soldier;
-        if (root) {
+
+        if (root != soldier) {
             ptr = root;
             while (ptr->left != soldier) {
                 ptr = ptr->left;
             }
+        } else {
+            return iterator(nullptr);
         }
         return iterator(ptr);
     }
@@ -137,12 +147,21 @@ public:
         return iterator(nullptr);
     }
 
+    int size() {
+        return SIZE;
+    }
+
+    int length() {
+        return SIZE;
+    }
+
     void insert(const T &ele) {
         if (root == soldier) {
             root = new Node(ele);
             root->father = soldier;
             root->right = root->left = soldier;
             root->Color = BLACK;
+            ++SIZE;
         } else {
             Node *it = root, *pre = root;
             while (it != soldier) {
@@ -166,31 +185,45 @@ public:
             if (pre->Color and data->Color) {
                 FixUp(data);
             }
+            ++SIZE;
         }
     }
 
-    iterator find(const T&temp){
+    void erase(const T &ele) {
+        auto it = find(ele);
+
+        remove(it);
+    }
+
+    iterator find(const T &temp) {
         Node *ptr = root;
-        while (ptr!=soldier){
-            if(cmp(ptr->element,temp)){
-                ptr = ptr->left;
-            }
-            else if(cmp(temp,ptr->element)){
+        while (ptr != soldier) {
+            if (cmp(ptr->element, temp)) {
                 ptr = ptr->right;
-            }
-            else return iterator(ptr);
+            } else if (cmp(temp, ptr->element)) {
+                ptr = ptr->left;
+            } else return iterator(ptr);
         }
         return iterator(nullptr);
     }
 
-    void remove(typename RB_Tree<T>::iterator &it) {
-        if (it->PtrNode) {
-            Remove(it->PtrNode);
+    void remove(typename RB_Tree<T, Compare>::iterator &it) {
+        if (it.PtrNode) {
+            Remove(it.PtrNode);
         }
     }
 
-    void show() {
-        Mid(root);
+    void clear() {
+        DelDfs(root);
+        SIZE = 0;
+        root = soldier;
+        root->left = root->right = soldier;
+        root->father = nullptr;
+    }
+
+    ~RB_Tree() {
+        clear();
+        delete soldier;
     }
 
 private:
@@ -291,7 +324,8 @@ private:
         } else {
             _f->father->right = _t;
         }
-        _t->father = _f->father;
+        if (_t != soldier)
+            _t->father = _f->father;
     }
 
     void DeleteFixUp(Node *x) {
@@ -347,6 +381,14 @@ private:
         }
     }
 
+    void DelDfs(Node *cur) {
+        if (cur == soldier)
+            return;
+        DelDfs(cur->left);
+        DelDfs(cur->right);
+        delete cur;
+    }
+
     void Remove(Node *z) {
         bool originColor = z->Color;
         Node *y = z, *x;
@@ -373,12 +415,44 @@ private:
             y->Color = z->Color;
         }
         delete z;
+        --SIZE;
         if (originColor == BLACK) {
-            DeleteFixUp(x);
+            if (x != soldier)
+                DeleteFixUp(x);
         }
     }
 
     Compare cmp;
     Node *root;
     Node *soldier;
+    int SIZE;
 };
+RB_Tree<int> s;
+#define MIN_PID 300
+#define MAX_PID 5000
+int allocate_map(){
+    s.clear();
+    for(int i = MIN_PID; i <= MAX_PID ; ++i){
+        s.insert(i);
+    }
+    return 1;
+}
+int allocate_pid(){
+    if(s.empty()){
+        return -1;
+    }
+    int ret = *s.begin();
+    s.erase(ret);
+    return ret;
+}
+void release_pid(int pid){
+    s.insert(pid);
+}
+int main(){
+    int k = allocate_map();
+    for(int i = 0 ; i < 5000 ; ++i) {
+        int ks = allocate_pid();
+        printf("%d\n",ks);
+    }
+
+}
